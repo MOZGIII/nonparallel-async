@@ -12,6 +12,6 @@ Possible log types:
 - `[security]` to invite users to upgrade in case of vulnerabilities.
 
 
-### v0.1.0 (2019-10-09)
+### v0.1.0 (2022-12-29)
 
-- Initial release!
+- Initial release (with async)!

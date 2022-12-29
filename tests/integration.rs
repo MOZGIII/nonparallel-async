@@ -1,54 +1,56 @@
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
-use nonparallel::nonparallel;
-use lazy_static::lazy_static;
+use nonparallel_async::nonparallel_async;
 
-lazy_static! { static ref MUT_A: Mutex<()> = Mutex::new(()); }
-lazy_static! { static ref MUT_B: Mutex<()> = Mutex::new(()); }
+static MUT_A: Mutex<()> = Mutex::const_new(());
 
 const COUNT: usize = 1_000;
 
-#[nonparallel(MUT_A)]
-fn append1(vec: Arc<Mutex<Vec<u32>>>) {
+#[nonparallel_async(MUT_A)]
+async fn append1(vec: Arc<Mutex<Vec<u32>>>) {
     for _ in 0..COUNT {
-        vec.lock().unwrap().push(1);
+        vec.lock().await.push(1);
     }
 }
 
-#[nonparallel(MUT_A)]
-fn append2(vec: Arc<Mutex<Vec<u32>>>) {
+#[nonparallel_async(MUT_A)]
+async fn append2(vec: Arc<Mutex<Vec<u32>>>) {
     for _ in 0..COUNT {
-        vec.lock().unwrap().push(2);
+        vec.lock().await.push(2);
     }
 }
 
-#[nonparallel(MUT_A)]
-fn append3(vec: Arc<Mutex<Vec<u32>>>) {
+#[nonparallel_async(MUT_A)]
+async fn append3(vec: Arc<Mutex<Vec<u32>>>) {
     for _ in 0..COUNT {
-        vec.lock().unwrap().push(3);
+        vec.lock().await.push(3);
     }
 }
 
-#[test]
-fn it_works() {
+#[tokio::test]
+async fn it_works() {
     let vecarc = Arc::new(Mutex::new(Vec::new()));
 
     let v1 = vecarc.clone();
-    let t1 = thread::spawn(move || append1(v1));
+    let t1 = tokio::spawn(async move { append1(v1).await });
     let v2 = vecarc.clone();
-    let t2 = thread::spawn(move || append2(v2));
+    let t2 = tokio::spawn(async move { append2(v2).await });
     let v3 = vecarc.clone();
-    let t3 = thread::spawn(move || append3(v3));
-    t1.join().unwrap();
-    t2.join().unwrap();
-    t3.join().unwrap();
+    let t3 = tokio::spawn(async move { append3(v3).await });
+    t1.await.unwrap();
+    t2.await.unwrap();
+    t3.await.unwrap();
 
     // Get inner vec
-    let vec: Vec<_> = Arc::try_unwrap(vecarc).unwrap().into_inner().unwrap();
+    let vec: Vec<_> = Arc::try_unwrap(vecarc).unwrap().into_inner();
 
     // Validate vec size
-    assert_eq!(vec.len(), COUNT * 3, "Vector does not contain 3*COUNT items");
+    assert_eq!(
+        vec.len(),
+        COUNT * 3,
+        "Vector does not contain 3*COUNT items"
+    );
 
     // Split vec in three. Every slice should only contain either 1, 2 or 3.
     // (depending on which function was faster).

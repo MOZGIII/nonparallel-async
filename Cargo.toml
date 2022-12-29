@@ -1,11 +1,11 @@
 [package]
-name = "nonparallel"
+name = "nonparallel-async"
 version = "0.1.0"
-authors = ["Danilo Bargen <mail@dbrgn.ch>"]
-documentation = "https://docs.rs/nonparallel/"
-repository = "https://github.com/dbrgn/nonparallel/"
+authors = ["Danilo Bargen <mail@dbrgn.ch>", "MOZGIII <mike-n@narod.ru>"]
+documentation = "https://docs.rs/nonparallel-async/"
+repository = "https://github.com/MOZGIII/nonparallel-async/"
 license = "MIT OR Apache-2.0"
-description = "Rust macro for ensuring non-parallel execution of functions."
+description = "Rust macro for ensuring non-parallel execution of async functions."
 readme = "README.md"
 keywords = ["parallel", "concurrent", "lock", "macro", "testing"]
 include = [
@@ -16,7 +16,7 @@ include = [
     "LICENSE-MIT",
     "LICENSE-APACHE",
 ]
-edition = "2018"
+edition = "2021"
 
 [lib]
 proc-macro = true
@@ -26,4 +26,4 @@ syn = { version = "1", features = ["full"] }
 quote = "1"
 
 [dev-dependencies]
-lazy_static = "1"
+tokio = { version = "1", features = ["macros", "sync", "parking_lot", "rt-multi-thread"] }

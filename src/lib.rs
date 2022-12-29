@@ -10,28 +10,27 @@
 //! ## Usage
 //!
 //! ```rust
-//! use std::sync::Mutex;
-//! use lazy_static::lazy_static;
-//! use nonparallel::nonparallel;
+//! use tokio::sync::Mutex;
+//! use nonparallel_async::nonparallel_async;
 //!
 //! // Create two locks
-//! lazy_static! { static ref MUT_A: Mutex<()> = Mutex::new(()); }
-//! lazy_static! { static ref MUT_B: Mutex<()> = Mutex::new(()); }
+//! static MUT_A: Mutex<()> = Mutex::const_new(());
+//! static MUT_B: Mutex<()> = Mutex::const_new(());
 //!
 //! // Mutually exclude parallel runs of functions using those two locks
 //!
-//! #[nonparallel(MUT_A)]
-//! fn function_a1() {
+//! #[nonparallel_async(MUT_A)]
+//! async fn function_a1() {
 //!     // This will not run in parallel to function_a2
 //! }
 //!
-//! #[nonparallel(MUT_A)]
-//! fn function_a2() {
+//! #[nonparallel_async(MUT_A)]
+//! async fn function_a2() {
 //!     // This will not run in parallel to function_a1
 //! }
 //!
-//! #[nonparallel(MUT_B)]
-//! fn function_b() {
+//! #[nonparallel_async(MUT_B)]
+//! async fn function_b() {
 //!     // This may run in parallel to function_a*
 //! }
 //! ```
@@ -41,7 +40,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
-use syn::{parse, parse_macro_input, Ident, Stmt, ItemFn};
+use syn::{parse, parse_macro_input, Ident, ItemFn, Stmt};
 
 #[derive(Debug)]
 struct Nonparallel {
@@ -56,7 +55,7 @@ impl Parse for Nonparallel {
 }
 
 #[proc_macro_attribute]
-pub fn nonparallel(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn nonparallel_async(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse macro attributes
     let Nonparallel { ident } = parse_macro_input!(attr);
 
@@ -64,7 +63,7 @@ pub fn nonparallel(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut function: ItemFn = parse(item).expect("Could not parse ItemFn");
 
     // Insert locking code
-    let quoted = quote! { let guard = #ident.lock().expect("Could not lock mutex"); };
+    let quoted = quote! { let guard = #ident.lock().await; };
     let stmt: Stmt = parse(quoted.into()).expect("Could not parse quoted statement");
     function.block.stmts.insert(0, stmt);
 
